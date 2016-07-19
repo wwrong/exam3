@@ -1,0 +1,354 @@
+<!doctype html>
+<html>
+    <head>
+        <title>图片采集</title>
+        <meta charset="utf-8">
+            <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                <style type='text/css'>
+                    /*common*/
+                    *{
+                        padding: 0;
+                        margin: 0;
+                        font-family: 'Microsoft YaHei', sans-serif;
+                        box-sizing: border-box;
+                    }
+                html {
+                    font-family: Helvetica;
+                    color: #222;
+                }
+                
+                h1 {
+                    color: steelblue;
+                    font-size: 24px;
+                    margin-top: 24px;
+                }
+                
+                button {
+                    margin: 0 3px 10px;
+                    font-size: 12px;
+                }
+                
+                .logLine {
+                    border-bottom: 1px solid #ccc;
+                    padding: 4px 2px;
+                    font-family: courier;
+                    font-size: 11px;
+                }
+                
+                body {
+                    background: #fff;
+                    width: 100%;
+                }
+                
+                .setBox {
+                    margin: 30px 10px;
+                }
+                
+                .setBox label {
+                    display:inline-block;
+                    width:20%;
+                    margin: 5px 0;
+                    
+                }
+                
+                .setBox .input-group {
+                    width: 300px;
+                    margin: 20px auto;
+                }
+
+                .setBox .input-group input{
+                    outline:none;
+                    border:none;
+                    width: 200px;
+                    background:transparent;
+                    border-bottom:1px solid #000;
+                    color: #727272;
+                    font-size:1.1em ;
+
+                } 
+
+                 .setBox .input-group input:focus{
+                    border-bottom:1px solid green;
+                 }
+                
+                .img-placeholder {
+                    width: 80%;
+                    height: 200px;
+                    position: relative;
+                    margin:0 auto;
+                    text-align:center;
+                }
+                
+                .img-placeholder img {
+                    display: inline-block;
+                    width: 207px;
+                    height: 200px;
+                    background: #ccc;
+                    border-radius: 0.5em;
+                    border: 0.2em dashed blue;
+                    margin: 0 auto;
+                    
+                }
+                
+                .img-placeholder .hint { 
+                    position: absolute; 
+                    left:50%; 
+                    top:40%;
+                    z-index:1; 
+                    -webkit-transform: translateX(-50%); 
+                    -moz-transform: translateX(-50%); 
+                    -o-transform: translateX(-50%); 
+                    -ms-transform: translateX(-50%); 
+                   
+                }
+
+                
+                .btn-group {
+                    margin: 0 auto;
+                    width: 60%;
+                }
+                
+                .btn {
+                    outline:none;
+                    border:none;
+                    border-radius:0.5em;
+                    display: block;
+                    width: 100%;
+                    height: 60px;
+                    margin:30px auto;
+                    font-size:15px;
+                    color:#fff;
+                    background:#56b6a3 ;
+                }
+                </style>
+    </head>
+    
+    <body>
+        <div class="setBox">
+            <div class="input-group">
+                <label for="setHeight">高度</label>
+                <input type="text" id="setHeight" value="请输入1~400的整数" onfocus="if(value=='请输入1~400的整数'){value=''}" onblur="if(value==''){value='请输入1~400的整数'}">
+                    </div>
+            
+            <div class="input-group">
+                <label for="setWidth">宽度</label>
+                <input type="text" id="setWidth" value="请输入1~300的整数"
+                    onfocus="if(value=='请输入1~300的整数'){value=''}" onblur="if(value==''){value='请输入1~300的整数'}">
+                    </div>
+        </div>
+        <div class="btn-group">
+<!--                    <button type="button" class="btn" id="btn-gallery" value="gallery">从相册选择 </button>-->
+<!--                    <button type="button" class="btn" id="btn-front" value="frontCamera">前置摄像头</button>-->
+<!--                    <button type="button" class="btn" id="btn-back" value="backCamera">后置摄像头</button>-->
+
+            <div id='buttons'></div>
+            <div id='log'></div>
+            
+        </div>
+        <div class="img-placeholder" id="imagePlace">
+            <img id="img" src="">
+            <span class="hint" id="hint">图片放置区</span>
+        </div>
+        <div class="debug">
+            <div id='buttons'></div>
+            <div id='log'></div>
+        </div>
+        <script>
+            
+            window.onload = function() {
+                
+                function setupWebViewJavascriptBridge(callback) {
+                    if (window.WebViewJavascriptBridge) { return callback(WebViewJavascriptBridge); }
+                    if (window.WVJBCallbacks) { return window.WVJBCallbacks.push(callback); }
+                    window.WVJBCallbacks = [callback];
+                    var WVJBIframe = document.createElement('iframe');
+                    WVJBIframe.style.display = 'none';
+                    WVJBIframe.src = 'wvjbscheme://__BRIDGE_LOADED__';
+                    document.documentElement.appendChild(WVJBIframe);
+                    setTimeout(function() { document.documentElement.removeChild(WVJBIframe) }, 0)
+                }
+                
+                setupWebViewJavascriptBridge(function(bridge) {
+                                             var uniqueId = 1;
+                                             function log(message, data) {
+                                             var log = document.getElementById('log');
+                                             
+                                             if (log.children.length) { log.insertBefore(el, log.children[0]) }
+                                             else { log.appendChild(el) }
+                                             }
+                                             
+                                             bridge.registerHandler('testJavascriptHandler', function(data, responseCallback) {
+                                                                    //这里开始OC对js的介入
+                                                                    
+                                                                    var image =data.src;
+                                                                    var width =data.width;
+                                                                    var height =data.height;
+                                                                    var img =document.getElementById('img');
+                                                                    if(!img.getAttribute("src")){
+                                                                            document.getElementById("hint").style.display = "none";
+                                                                    }
+                                                                    var img_place =document.getElementById("imagePlace");
+                                                                    img.remove();
+                                                                    var new_img = document.createElement("img");
+                                                                    new_img.setAttribute("src",image);
+                                                                    new_img.style.background = "green";
+                                                                    new_img.style.width = width + 'px';
+                                                                    new_img.style.height = height + 'px';
+                                                                    img_place.appendChild(new_img);
+                                                                    
+                                                                    /*
+                                                                     var image = "http://img0.bdstatic.com/img/image/shouye/xiaoxiao/%E5%A3%81%E7%BA%B82.jpg"
+                                                                     var width = "100"
+                                                                     var height = "200"
+                                                                     var img_place =document.getElementById("imagePlace");
+                                                                     var img = document.getElementById("img");
+                                                                     img.remove();
+                                                                     var new_img = document.createElement("img");
+                                                                     new_img.setAttribute("src",image);
+                                                                     new_img.style.width = width + 'px';
+                                                                     new_img.style.height = height + 'px';
+                                                                     img_place.appendChild(new_img);*/
+
+                                                                     
+                                                                     
+                                                                
+                                                                    
+                                                                    //log('ObjC called testJavascriptHandler with', data);
+                                                                    var responseData = data;
+                                                                    //log('JS responding with', responseData);
+                                                                    responseCallback(responseData)
+                                                                    })
+                                             
+                                             document.body.appendChild(document.createElement('br'));
+                                             
+                                             var sWidth = gid("setWidth");
+                                             var sHeight = gid("setHeight");
+                                             var btnSubmit = gid("btn-submit");
+                                             var btnBack = gid("btn-back");
+                                             var btnFront = gid("btn-front");
+                                             var btnGallery = gid("btn-gallery");
+                                             var img = gid("img");
+                                             var sWidth_value = sWidth.value;
+                                             var sHeight_value = sHeight.value;
+                                             
+                                             
+                                             //alert(sWidth_value);
+                                             
+                                             
+                                             
+                                             <!--                                  新建的三个按钮 -->
+                                             function gid(string) {
+                                             return document.getElementById(string);
+                                             }
+                                             
+                                             
+                                             var callbackButton = document.getElementById('buttons').appendChild(document.createElement('button'))
+                                             callbackButton.className="btn";
+                                             callbackButton.id = "btn-back";
+                                             callbackButton.innerHTML = '后置摄像头';
+                                             callbackButton.onclick = function(e) {
+                                             var sWidth_value = sWidth.value;
+                                             var sHeight_value = sHeight.value;
+                                             
+                                             if ((0 < parseInt(sWidth_value)) && (parseInt(sWidth_value)  <= 300)  &&  (0 < parseInt(sHeight_value)) && (parseInt(sHeight_value) <= 400)) {
+                                             
+                                             bridge.callHandler('testObjcCallback', {'source': 'camera','width':sWidth_value,'height':sHeight_value,'cameraType':'rear'}, function(response) {
+                                                                log('JS got response', response)
+                                                                }) }else{
+                                             alert("输入有误");
+                                             return false;
+                                             }
+                                             };
+                                             
+                                             var callbackButton2 = document.getElementById('buttons').appendChild(document.createElement('button'))
+                                             callbackButton2.innerHTML = '前置摄像头';
+                                             callbackButton2.className="btn";
+                                             callbackButton2.onclick = function(e) {
+                                             var sWidth_value = sWidth.value;
+                                             var sHeight_value = sHeight.value;
+                                             
+                                             if ((0 < parseInt(sWidth_value)) && (parseInt(sWidth_value)  <= 300)  &&  (0 < parseInt(sHeight_value)) && (parseInt(sHeight_value) <= 400)) {
+                                             
+                                             bridge.callHandler('testObjcCallback', {'source': 'camera','width':sWidth_value,'height':sHeight_value,'cameraType':'front'},function(response) {
+                                                                log('JS got response', response)
+                                                                })}else{
+                                             alert("输入有误");
+                                             }
+                                             };
+                                             
+                                             var callbackButton3 = document.getElementById('buttons').appendChild(document.createElement('button'))
+                                             callbackButton3.innerHTML = '从相册选择';
+                                             callbackButton3.className="btn";
+                                             callbackButton3.onclick = function(e) {
+                                             var sWidth_value = sWidth.value;
+                                             var sHeight_value = sHeight.value;
+                                             
+                                             if ((0 < parseInt(sWidth_value)) && (parseInt(sWidth_value)  <= 300)  &&  (0 < parseInt(sHeight_value)) && (parseInt(sHeight_value) <= 400)) {
+                                             bridge.callHandler('testObjcCallback', {'source': 'album','width':sWidth_value,'height':sHeight_value},    function(response) {
+                                                                log('JS got response', response)
+                                                                })                                 }else{
+                                             alert("输入有误");
+                                             return false;
+                                             }
+                                             }
+                                             
+                                             function abc(e) {
+                                             bridge.callHandler('testObjcCallback', {'source': 'camera','width':'200','height':'200','cameraType':'rear'},    function(response) {
+                                                                log('JS got response', response)
+                                                                })
+                                             
+                                             };
+                                             
+                                             
+                                             btnFront.onclick = function(e) {
+                                             bridge.callHandler('testObjcCallback', {'source': 'camera','width':'200','height':'200','cameraType':'rear'},    function(response) {
+                                                                log('JS got response', response)
+                                                                })
+                                             };
+                                             
+                                             
+                                             btnGallery.onclick = function(e) {
+                                             bridge.callHandler('testObjcCallback', {'source': 'camera','width':'200','height':'200','cameraType':'rear'},    function(response) {
+                                                                log('JS got response', response)
+                                                                })
+                                             
+                                             }
+                                             
+                                             
+                                             })
+                                             
+                                             function check() {
+                                                 
+                                                 
+                                                 bridge.callHandler('testObjcCallback', {'source': 'camera','width':'200','height':'200','cameraType':'rear'},    function(response) {
+                                                                    log('JS got response', response)
+                                                                    })
+                                                                    
+                                                                    
+                                                                    /*	if (i = "img/border.png") {
+                                                                     alert("please select a phoho!");
+                                                                     }*/
+                                             }
+                                             
+                                             
+            }
+        
+        
+        
+        
+        
+        window.onerror = function(err) {
+            log('window.onerror: ' + err)
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+            </script>
+    </body>
+    
+</html>
